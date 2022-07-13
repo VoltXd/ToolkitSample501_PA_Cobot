@@ -4,8 +4,8 @@
 #include <cmath>
 #include <chrono>
 
-#pragma warning(disable:4018)
-#pragma warning(disable:4244)
+#pragma warning(disable:4018)	// disable uint > int comparison warning
+#pragma warning(disable:4244)	// disable implicit long double -> float cast warning
 
 namespace PA_ToolBox
 {

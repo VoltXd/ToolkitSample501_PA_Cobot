@@ -2,7 +2,7 @@
 #include "Positionning_Kreon_From_VAL3.hpp"
 #include "Eigen/Dense"
 
-#pragma warning(disable:4244)
+#pragma warning(disable:4244)	// disable implicit long double -> float cast warning
 
 namespace PA_Positionning
 {
