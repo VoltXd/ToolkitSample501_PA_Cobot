@@ -252,6 +252,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalIncludeDirectories>C:\Users\anwer\Documents\LibraryCpp\eigen-3.4.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -287,6 +288,11 @@
     </ClCompile>
     <ClCompile Include="KR_Specific.cpp" />
     <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="PA_CB.cpp" />
+    <ClCompile Include="PA_Protocol.cpp" />
+    <ClCompile Include="PA_Sockets.cpp" />
+    <ClCompile Include="PA_ToolBox.cpp" />
+    <ClCompile Include="Positionning_Kreon_From_VAL3.cpp" />
     <ClCompile Include="SocketManager.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug Unicode|Win32'">
       </PrecompiledHeader>
@@ -312,11 +318,17 @@
     <ClInclude Include="ArmManager.h" />
     <ClInclude Include="ChildView.h" />
     <ClInclude Include="CIRCBUF.H" />
+    <ClInclude Include="Errors.hpp" />
     <ClInclude Include="KreonDefines.h" />
     <ClInclude Include="KreonServer.h" />
     <ClInclude Include="KR_ArmBase.h" />
     <ClInclude Include="KR_Specific.h" />
     <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="PA_CB.hpp" />
+    <ClInclude Include="PA_Protocol.hpp" />
+    <ClInclude Include="PA_Sockets.hpp" />
+    <ClInclude Include="PA_ToolBox.hpp" />
+    <ClInclude Include="Positionning_Kreon_From_VAL3.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SocketManager.h" />
     <ClInclude Include="StdAfx.h" />
