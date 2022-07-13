@@ -20,7 +20,9 @@
 #include "KreonServer.h"
 #include "SocketManager.h"
 #include "KR_Specific.h"
+#include "resource.h"
 #include <fstream> //matthias
+#include <thread>
 
 
 #ifdef _DEBUG
@@ -50,16 +52,15 @@ static char THIS_FILE[] = __FILE__;
 #define	ARM_NAME			_T("VXElementsWrapper")
 
 
-
-KR_CALIBRATION_FILE_LIST*	volatile st_CalibrationFileList;
-CArmManager					*ArmManager;
-CSocketManager				*SocketManager;
-CChildView					CMainFrame::m_wndView;
-HWND						CMainFrame::m_StatichWnd;
-DWORD						StartTime;
-int							NbLines;
-double						PositioningMatrix[16];
-bool						g_bButtonState[4]={0,0,0,0};
+KR_CALIBRATION_FILE_LIST*			volatile st_CalibrationFileList;
+CSocketManager						*SocketManager;
+CArmManager							*ArmManager;
+CChildView							CMainFrame::m_wndView;
+DWORD								StartTime;
+HWND								CMainFrame::m_StatichWnd;
+double								PositioningMatrix[16];
+bool								g_bButtonState[4]={0,0,0,0};
+int									NbLines;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -80,6 +81,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_KREONTOOLKIT_ARMPROPERTIES, OnKreonArmProperties)
 	ON_COMMAND(ID_KREONTOOLKIT_SCANNERPROPERTIES, OnKreonScannerProperties)
 	ON_COMMAND(ID_KREONTOOLKIT_LICENSE, OnKreontoolkitLicense)
+	ON_COMMAND(ID_POSITIONINGDEVICE_COBOTTX2, OnPositioningDeviceCobot)
+	ON_COMMAND(ID_POSITIONINGDEVICE_CTRACK, OnPositioningDeviceCtrack)
 	ON_MESSAGE(WM_SOCKET_MESSAGE, OnDataSocket)
 	ON_WM_TIMER()
 	//}}AFX_MSG_MAP
@@ -92,7 +95,10 @@ CMainFrame::CMainFrame()
 {
 	ArmManager=NULL;
 	m_bKreonInitialized=false;
+	m_bCobotCommunicationInitialized = false;
 	m_bScanning=false;
+
+	positioningDevice = PA_Enums::CobotTx2Touch;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -630,7 +636,7 @@ bool CMainFrame::Init()
 		//	Load the library (DLL) of the arm
 		TCHAR DLLName[MAX_PATH];
 		_stprintf_s(DLLName,_countof(DLLName),_T("%s.DLL"),ARM_NAME);
-		ArmManager=new CArmManager(DLLName);
+		ArmManager=new CArmManager(DLLName, positioningDevice);
 		if(!ArmManager->IsInitialized())
 		{
 			CString ErrMsg;
@@ -1080,6 +1086,55 @@ void CMainFrame::OnKreonScannerProperties(void)
 			return;
 
 	SocketManager->OpenScannerPropertiesWindow(m_hWnd);
+}
+
+void CMainFrame::OnPositioningDeviceCobot()
+{
+	CMenu *pMenu = GetMenu();
+	if (pMenu != nullptr)
+	{
+		pMenu->CheckMenuItem(ID_POSITIONINGDEVICE_COBOTTX2, MF_CHECKED | MF_BYCOMMAND);
+		pMenu->CheckMenuItem(ID_POSITIONINGDEVICE_CTRACK, MF_UNCHECKED | MF_BYCOMMAND);
+	}
+
+	positioningDevice = PA_Enums::CobotTx2Touch;
+
+	// Restart Kreon
+	m_bKreonInitialized = false;
+
+	// Restart arm manager
+	if (ArmManager != NULL)
+		if (ArmManager->IsConnected())
+			ArmManager->EndArm();
+	delete ArmManager;
+	ArmManager = NULL;
+
+	ArmManager = new CArmManager(ARM_NAME, positioningDevice);
+}
+
+void CMainFrame::OnPositioningDeviceCtrack()
+{
+	CMenu *pMenu = GetMenu();
+	if (pMenu != nullptr)
+	{
+		pMenu->CheckMenuItem(ID_POSITIONINGDEVICE_COBOTTX2, MF_UNCHECKED | MF_BYCOMMAND);
+		pMenu->CheckMenuItem(ID_POSITIONINGDEVICE_CTRACK, MF_CHECKED | MF_BYCOMMAND);
+	}
+
+
+	positioningDevice = PA_Enums::Ctrack;
+
+	// Restart Kreon
+	m_bKreonInitialized = false;
+
+	// Restart arm manager
+	if (ArmManager != NULL)
+		if (ArmManager->IsConnected())
+			ArmManager->EndArm();
+	delete ArmManager;
+	ArmManager = NULL;
+
+	ArmManager = new CArmManager(ARM_NAME, positioningDevice);
 }
 
 /////////////////////////////////////////////////////////////////////////////

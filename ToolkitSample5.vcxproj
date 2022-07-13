@@ -325,6 +325,7 @@
     <ClInclude Include="KR_Specific.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="PA_CB.hpp" />
+    <ClInclude Include="PA_Enums.hpp" />
     <ClInclude Include="PA_Protocol.hpp" />
     <ClInclude Include="PA_Sockets.hpp" />
     <ClInclude Include="PA_ToolBox.hpp" />

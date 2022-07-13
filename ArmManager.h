@@ -118,13 +118,17 @@
 
 #include "KreonDefines.h"
 #include "VXElementsWrapper.h"
+#include "PA_Enums.hpp"
+#include "PA_CB.hpp"
+
+#include <thread>
 
 
 /////////////////////////////////////////////////////////////////////////////
 class CArmManager
 {
 public:
-	CArmManager(TCHAR* ArmName);
+	CArmManager(TCHAR* ArmName, PA_Enums::PositioningDevice armType);
 	~CArmManager();
 
 	//	Functions located in the Kreon DLL
@@ -159,6 +163,11 @@ private:
 	int			m_NbButtons;
 	DWORD		m_TriggerDuration;
 	TCHAR*		m_DllName;
+
+	PA_Enums::PositioningDevice m_ArmType;
+
+	std::thread *m_rcvThread;
+	std::thread *m_readCBThread;
 
 	typedef bool (*LPFNDLLISCONNECTED)(void);
 	LPFNDLLISCONNECTED			m_lpfnDllIsConnected;
@@ -203,6 +212,8 @@ private:
 	LPFNDLLPROBECALIBRATION		m_lpfnDllProbeCalibration;
 };
 
+void rcvCobotMessage(PA_Communication::CircularBuffer &cbRx);
+void readBuffer(PA_Communication::CircularBuffer &cbRx);
 
 
 #endif

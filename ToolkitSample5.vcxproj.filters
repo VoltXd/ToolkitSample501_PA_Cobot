@@ -121,6 +121,9 @@
     <ClInclude Include="Positionning_Kreon_From_VAL3.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PA_Enums.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\ToolkitSample5.ico">
