@@ -1,7 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 //	SocketManager.h
 /////////////////////////////////////////////////////////////////////////////
-#pragma warning(disable:4996)
 #ifndef __SOCKET_MANAGER__
 #define	__SOCKET_MANAGER__
 
@@ -19,30 +18,33 @@ public:
 	CSocketManager();
 	~CSocketManager();
 
-	int  InitServer(KREON_CALLBACK KreonCallBack,HWND hWnd,UINT KreonMessage,TCHAR* ServerName=NULL);
-	bool OnDataSocket(void);
+	bool GetPluginFolder(LPCTSTR pluginName, TCHAR * path);
+	int  InitServer(KREON_CALLBACK KreonCallBack,HWND hWnd,UINT KreonMessage,TCHAR* ServerName=NULL,BYTE PortIndex=0);
+	bool OnDataSocket();
 
 
 	//	KREON SDK functions
 	void InitKreon(BYTE MachineType,char* CALIBRATION_FILE,UINT CodeClient,char* Language=NULL, HWND hWndApp=NULL);
 	void SetApplicationHwnd(HWND hWndApp);
 	void EndKreon(BYTE SensorOff);
-	void GetLastErrorString(BYTE ErrorCode);
+	bool IsSocketConnected();
+	void GetLastErrorString(BYTE ErrorCode, bool bUnicode);
 	//	Calibration file management
 	void GetCalibrationFileList();
-	void GetLaserPlaneCorners();
+	void GetLaserPlaneCorners(bool bReduced=false);
 	//	3 axes machines
 	void InitMachine(KR_MACHINE_CONFIG &Machine);
 	void SetPresetAxis(double* AxisPosition);
 	void GetPresetAxis();
 	//	Video settings window
 	void SetVideoSettings(BYTE Lut,BYTE IntegrationTime,BYTE LaserPower);
-	void GetVideoSettings(void);
-	void OpenVideoSettingWindow(bool bVisible=true);
+	void GetVideoSettings();
+	void OpenVideoSettingWindow(bool bVisible=true, bool bMinimized = false);
 	void IsVideoSettingWindowOpened();
 	void LockVideoSettingsWindow();
 	void UnlockVideoSettingsWindow();
 	void CloseVideoSettingsWindow();
+	void GetVideoSettingsList();
 	void GetVideoSettingsRecorded();
 	void SetVideoSettingByName(char* Name);
 	//	Parameters
@@ -51,10 +53,9 @@ public:
 	void SetHardwareFilter(BYTE Filter);
 	void SetExternalTriggerDuration(WORD TriggerDuration);
 	void SetAcquisitionDelay(WORD Delay);
-	void OpenDrawingParametersWindow(void);
+	void OpenDrawingParametersWindow();
 	//	Positioning process
 	void SphereCalibration(KR_LASER_LINE* CalibrationScan, double* CalibrationMatrix, bool Type5axes, long SupportDirection, double SphereDiameter);
-	void UpdateOffset(KR_LASER_LINE* CalibrationScan, double* CalibrationMatrix, bool Type5axes, long SupportDirection, double SphereDiameter);
 	void SetSphereCenter(double x,double y,double z);
 	void OpenPositioningWindow(KR_INDEX* Index,BYTE NbIndex,
 							   BYTE ScanMethod,bool bVisible=true,BYTE Frequency=15,
@@ -78,34 +79,46 @@ public:
 	void SetNoMachinePositionAvailable();
 	void InitAcquisition(BYTE ScanMethod,BYTE Frequency,float Step,double* PositioningMatrix,UINT Decimation);
 	void InitAcquisition(BYTE ScanMethod,int  Frequency,float Step,double* PositioningMatrix,UINT Decimation);
+	void InitAcquisition(BYTE ScanMethod,int  Frequency,float Step,KR_INDEX_EXT * Index,UINT Decimation);
 	void BeginAcquisition();	//	Used also in positioning
 	void EndAcquisition();		//	Used also in positioning
 	void GetXYZLaserLine();
-	void OpenScanWindow();
 	//	Touch probes
 	void ProbeOpenCalibrationWindow(KR_TOUCH_PROBE* Probes,BYTE NbProbes,bool bVisible,double SphereDiameter=-1.0,bool ballowAddDel=false);
 	void ProbeAddPosition(double* Matrix,bool bSound);
 	void ProbeDelLastPosition(bool bSound);
 	void ProbeGetCalibration(BYTE ProbeIndex);
 	void BeginProbeCalibration(BYTE Method);
-	void EndProbeCalibration(void);
+	void EndProbeCalibration();
 	//	Misc.
-	void GetSensorType(void);
+	void GetSensorType();
 	void SetSensorState(bool bOn);
+	void GetSensorState();
 	void OpenScannerPropertiesWindow(HWND hWndParent);
-	void GetHardwareFilter(void);
-	void OpenLicenseDialog(void);
+	void GetHardwareFilter();
+	void OpenLicenseDialog();
 	void OpenLicenseDialog(HWND hWndParent);
+	void SetOutput(BYTE output);
+	void GetInput();
+	//  Misc. computations
+	void FitPlane(double pPoints[], DWORD nbPoints);
+	void FitPoint(double pPoints[], DWORD nbPoints);
+	void FitSphere(double pPoints[], DWORD nbPoints);
+	void FitCircle(double pPoints[], DWORD nbPoints);
+	void FitCylinder(double pPoints[], DWORD nbPoints);
+	void FitLine(double pPoints[], DWORD nbPoints);
 
+	void Smoother(double pPoints[], DWORD nbPoints, double smootherRadius, double filterRadius, bool bSmooth, bool bFilter);
+	void GetProcessedPoints(DWORD nbPoints);
 
 private:
 	void OnSend(char *Buffer,int Size);
+	void SendInputPoints(double pPoints[], DWORD nbPoints);	// Used by Fit* commands
 
 	KREON_CALLBACK	m_KreonCallBack;
 	SOCKET			m_Socket;
 	char*			m_Command;
 	DWORD			m_CommandSize;
-	bool			m_bBusy;
 };
 
 

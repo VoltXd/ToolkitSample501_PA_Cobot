@@ -19,7 +19,7 @@
 #include "KreonServer.h"
 #include "SocketManager.h"
 #include "KR_Specific.h"
-#include <fstream> //matthias
+
 
 
 #ifdef _DEBUG
@@ -46,8 +46,7 @@ static char THIS_FILE[] = __FILE__;
 //#define	ARM_NAME			_T("Romer")		// Romer France System6/Armony (Serial)
 //#define	ARM_NAME			_T("RomerEth")	// Romer France Sigma/Omega (Ethernet)
 //#define	ARM_NAME			_T("MS")		// MicroScribe
-//#define	ARM_NAME			_T("Simu")
-#define	ARM_NAME			_T("VXElementsWrapper")
+#define	ARM_NAME			_T("Simu")
 
 
 CMainFrame * theMainFrame = NULL;
@@ -65,7 +64,6 @@ int							g_NbArmButtons=0;
 bool *						g_pbButtonState=NULL;
 int							g_nWaitForInitKreonCallback=0;
 static bool					g_bEndKreon = false;
-static int					g_WaitingForCommand = 0;
 
 /////////////////////////////////////////////////////////////////////////////
 IMPLEMENT_DYNAMIC(CMainFrame, CFrameWnd)
@@ -280,7 +278,7 @@ void OnKreonCallback(char *Command)
 				TCHAR temp[64];
 				for (int i = 0; i < nbSettings; i++)
 				{
-					mbstowcs_s(NULL, temp, 64, Command + skipCallbackHeader + idx, 64);
+					mbstowcs_s(NULL, temp, Command + skipCallbackHeader + idx, 64);
 					txtSettings.Append( temp);
 					if (idx == idxCurrent)
 						txtSettings += _T(" (current)");
@@ -352,17 +350,6 @@ void OnKreonCallback(char *Command)
 			}
 			break;
 
-		case KR_SOCKET_SETEXTERNALTRIGGERDURATION:
-			if (Command[1])
-			{
-				g_WaitingForCommand = 0;
-			}
-			else
-			{
-				g_WaitingForCommand = -1;
-			}
-			break;
-
 		case KR_SOCKET_OPENVIDEOSETTINGWINDOW:
 			if (Command[1])
 			{
@@ -389,11 +376,6 @@ void OnKreonCallback(char *Command)
 					if (ArmManager->BeginAcquisition(KR_ARM_MODE_BUTTONS)==KR_ARM_OK)
 						::SetTimer(CMainFrame::m_StatichWnd,ARM_BUTTONS_TIMER_ID,ARM_BUTTONS_TIMER_PERIOD,NULL);
 				}
-				g_WaitingForCommand = 0;
-			}
-			else
-			{
-				g_WaitingForCommand = -1;
 			}
 			break;
 
@@ -540,30 +522,6 @@ void OnKreonCallback(char *Command)
 					for(int i=0 ; i<g_NbArmButtons ; i++)
 						txt.AppendFormat(_T(" %d"),g_pbButtonState[i]);
 					cdc->TextOut(10, 200, txt);
-
-					// Code from Matthias Bordron, to write the current laser line into points.txt
-					std::ofstream fichier("points.txt", std::ios::out | std::ios::app);
-					if (fichier)
-					{
-						unsigned int target;
-						target = (unsigned int)LaserLineSize;
-						unsigned int zero = 0;
-						if (target != zero)
-						{
-							CString text;
-							for (unsigned int a = 0; a<target; a++)
-							{
-								fichier << LaserLine[a * 3] << " " << LaserLine[(a * 3) + 1] << " " << LaserLine[(a * 3) + 2] << " ";
-							}
-							fichier << std::endl;
-							fichier.close();
-						}
-					}
-					else
-					{
-						AfxMessageBox(_T("Impossible d'ouvrir fichier"));
-					}
-					// end Matthias Bordron
 
 					delete [] LaserLine;
 				}
@@ -849,7 +807,7 @@ bool CMainFrame::Init()
 
 		//	Load the library (DLL) of the arm
 		TCHAR DLLName[MAX_PATH];
-		_stprintf_s(DLLName,_countof(DLLName),_T("%s.DLL"),ARM_NAME);
+		_stprintf_s(DLLName,_countof(DLLName),_T("%s\\KR%s.DLL"),ARM_NAME,ARM_NAME);
 //		_stprintf_s(DLLName,_countof(DLLName),_T("KR%s.DLL"),ARM_NAME);	// Use this instead if you do not put arm files in subfolders
 		ArmManager=new CArmManager(DLLName);
 		if (!ArmManager->IsInitialized())
@@ -991,42 +949,18 @@ void CMainFrame::OnKreontoolkitPositioning()
 	//	The arm and the ECU are correctly initialized.
 	//	We need to inform the ECU about the duration of the external trigger.
 	//	To get this information, we use the "GetParameter" method of CArmManager
-	//	(see ArmManager.h) je
-	WORD TriggerDuration = 500;
+	//	(see ArmManager.h)
+	WORD TriggerDuration;
 	ArmManager->GetParameter("TriggerDuration",&TriggerDuration);
-	g_WaitingForCommand = 1;
 	SocketManager->SetExternalTriggerDuration(TriggerDuration);
-	while (g_WaitingForCommand == 1)
-	{
-		Sleep(10);
-		MSG Msg;
-		while (PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&Msg);
-			DispatchMessage(&Msg);
-		}
-	}
-	ASSERT(g_WaitingForCommand == 0);
 
 	BYTE nbIndex = 1;	// For an arm, we use only one index
 	KR_INDEX_EXT myIndex;
 	memset(&myIndex,0,sizeof(myIndex));
 	memcpy(myIndex.PositioningMatrix,PositioningMatrix,16*sizeof(double));
 	strcpy_s(myIndex.Name,_countof(myIndex.Name),"MyIndex");
-	g_WaitingForCommand = 1;
 	SocketManager->OpenPositioningWindowExt(&myIndex,nbIndex,
-		KR_SCAN_METHOD_SYNCHRONOUS,true,(BYTE)15,0.0,false,false,m_hWnd,false,0xFF);
-	while (g_WaitingForCommand == 1)
-	{
-		Sleep(10);
-		MSG Msg;
-		while (PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&Msg);
-			DispatchMessage(&Msg);
-		}
-	}
-	ASSERT(g_WaitingForCommand == 0);
+		KR_SCAN_METHOD_SYNCHRONOUS,true,15,0,false,false,m_hWnd,false,0xFF);
 
 #else
 

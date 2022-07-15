@@ -126,33 +126,60 @@
 #include <windows.h>
 #include <tchar.h>
 #include <KreonDefines.h>
-#include "VXElementsWrapper.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
 class CArmManager
 {
 public:
-	CArmManager(/*const*/ TCHAR* ArmName);
+	CArmManager(const TCHAR* ArmName);
 	~CArmManager();
 
 	//	Functions located in the Kreon DLL
-	bool	IsInitialized();// {return m_bDllOk; }
-	bool	IsConnected();// {return m_lpfnDllIsConnected() != 0; }
-	int		BeginArm();// {return m_lpfnDllBeginArm(); }
-	int		EndArm();// {return m_lpfnDllEndArm(); }
-	int		BeginAcquisition(int Mode);// {return m_lpfnDllBeginAcquisition(Mode); }
-	int		GetAcquisitionMode(void);// {return m_lpfnDllGetAcquisitionMode(); }
-	int		EndAcquisition();// { return m_lpfnDllEndAcquisition(); }
-	int		GetCurrentPosition(double* Matrix, bool* ButtonState);// {return m_lpfnDllGetCurrentPosition(Matrix, ButtonState); }
-	int		GetTriggeredPosition(double* Matrix, bool* ButtonState);// {return m_lpfnDllGetTriggeredPosition(Matrix, ButtonState); }
-	int		GetButtonState(bool* ButtonState);// {return m_lpfnDllGetButtonState(ButtonState); }
-	bool	GetParameter(/*const*/ char* Name, void* Value);// {return m_lpfnDllGetParameter(Name, Value); }
-	bool	SetParameter(/*const*/ char* Name, void* Value);// {return m_lpfnDllSetParameter(Name, Value); }
-	bool	HasPropertiesWindow(void);// {return m_lpfnDllHasPropertiesWindow(); }
-	void	PropertiesWindow(HWND hWndParent);// {m_lpfnDllPropertiesWindow(hWndParent); }
-	int		ProbeCalibration(int nPositions, KR_POSITION Positions[], int CalibrationMethod, KR_TOUCH_PROBE * pProbe, double SphereDiameter = 0.0);
-//																	{return m_lpfnDllProbeCalibration(nPositions,Positions,CalibrationMethod,pProbe,SphereDiameter);}
+	bool	IsInitialized()											{return m_bDllOk;}
+	bool	IsConnected()											{return m_lpfnDllIsConnected()!=0;}
+	int		BeginArm()												{return m_lpfnDllBeginArm();}
+	int		BeginArmWithCalibration(char * calibration)
+	{
+		if (m_lpfnDllBeginArmWithCalibration)
+			return m_lpfnDllBeginArmWithCalibration(calibration);
+		return m_lpfnDllBeginArm();
+	}
+	int		EndArm()												{return m_lpfnDllEndArm();}
+	int		BeginAcquisition(int Mode)								{return m_lpfnDllBeginAcquisition(Mode);}
+	int		GetAcquisitionMode(void)								{return m_lpfnDllGetAcquisitionMode();}
+	int		EndAcquisition()										{return m_lpfnDllEndAcquisition();}
+	int		GetCurrentPosition(double* Matrix,bool* ButtonState)	{return m_lpfnDllGetCurrentPosition(Matrix,ButtonState);}
+	int		GetCurrentPositionAndJointAngles(double* Matrix,bool* ButtonState,int * NbJoints,double ** JointAngles,bool bDegrees)
+	{
+		if (m_lpfnDllGetCurrentPositionAndJointAngles)
+			return m_lpfnDllGetCurrentPositionAndJointAngles(Matrix,ButtonState,NbJoints,JointAngles,bDegrees);
+		if (NbJoints) *NbJoints=0;
+		if (JointAngles) *JointAngles=NULL;
+		return m_lpfnDllGetCurrentPosition(Matrix,ButtonState);
+	}
+	int		GetTriggeredPosition(double* Matrix,bool* ButtonState)	{return m_lpfnDllGetTriggeredPosition(Matrix,ButtonState);}
+	int		GetTriggeredPositionAndJointAngles(double* Matrix,bool* ButtonState,int * NbJoints,double ** JointAngles,bool bDegrees)
+	{
+		if (m_lpfnDllGetTriggeredPositionAndJointAngles)
+			return m_lpfnDllGetTriggeredPositionAndJointAngles(Matrix,ButtonState,NbJoints,JointAngles,bDegrees);
+		if (NbJoints) *NbJoints=0;
+		if (JointAngles) *JointAngles=NULL;
+		return m_lpfnDllGetTriggeredPosition(Matrix,ButtonState);
+	}
+	int		GetButtonState(bool* ButtonState)						{return m_lpfnDllGetButtonState(ButtonState);}
+	bool	GetParameter(const char* Name,void* Value)				{return m_lpfnDllGetParameter(Name,Value);}
+	bool	SetParameter(const char* Name,void* Value)				{return m_lpfnDllSetParameter(Name,Value);}
+	bool	HasPropertiesWindow(void)								{return m_lpfnDllHasPropertiesWindow();}
+	void	PropertiesWindow(HWND hWndParent)						{m_lpfnDllPropertiesWindow(hWndParent);}
+	int		ProbeCalibration(int nPositions, KR_POSITION Positions[], int CalibrationMethod, KR_TOUCH_PROBE * pProbe, double SphereDiameter=0.0)
+																	{return m_lpfnDllProbeCalibration(nPositions,Positions,CalibrationMethod,pProbe,SphereDiameter);}
+	int		OpenKreonArmProbesManagement(void)
+	{
+		if (m_lpfnDllOpenKreonArmProbesManagement)
+			return m_lpfnDllOpenKreonArmProbesManagement();
+		return KR_ARM_FAILED;
+	}
 
 	//	Local functions
 	int		GetNbButtons(void);
@@ -160,9 +187,6 @@ public:
 	DWORD	GetTriggerDuration(void);
 
 private:
-	// to download custom dll
-	VXElementsWrapper wrapper;
-
 	HINSTANCE	m_hModule;
 	bool		m_bDllOk;
 	int			m_NbButtons;

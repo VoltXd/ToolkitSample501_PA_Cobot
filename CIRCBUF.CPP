@@ -67,11 +67,11 @@ BOOL CCircBuf::SetBuffer(int iSize)
 	m_iReadPos   = 0;
 	m_iWritePos  = 0;
 
-	if (m_lpBuf!=NULL)
+	if (m_lpBuf)
 		return FALSE;
-	m_lpBuf = malloc(m_iSize = iSize);
+	m_lpBuf = new char[m_iSize = iSize];
 
-	return(!!m_lpBuf);
+	return (m_lpBuf!=NULL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -79,7 +79,7 @@ void CCircBuf::RemoveBuffer()
 {
 	if(m_lpBuf)
 	{
-		free(m_lpBuf);
+		delete [] m_lpBuf;
 
 		m_lpBuf      = NULL;
 		m_iSize      = 0;
@@ -91,8 +91,7 @@ void CCircBuf::RemoveBuffer()
 /////////////////////////////////////////////////////////////////////////////
 BOOL CCircBuf::WriteString(void *lpWriteBuf)
 {
-	int iBytes = (int)strlen((char*)lpWriteBuf);
-	return (Write(lpWriteBuf, iBytes));
+	return ( Write(lpWriteBuf,(int)strlen((char*)lpWriteBuf)) );
 }
 
 /////////////////////////////////////////////////////////////////////////////

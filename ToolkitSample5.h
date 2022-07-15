@@ -29,6 +29,7 @@ public:
 	//{{AFX_VIRTUAL(CToolkitSample5App)
 	public:
 	virtual BOOL InitInstance();
+	virtual BOOL ExitInstance();
 	//}}AFX_VIRTUAL
 
 // Implementation

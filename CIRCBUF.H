@@ -13,7 +13,7 @@
 #ifndef __KR_CIRCBUF__
 #define __KR_CIRCBUF__
 
-
+#define KR_CIRCBUF_SIZE 9000000
 
 /////////////////////////////////////////////////////////////////////////////
 class CCircBuf

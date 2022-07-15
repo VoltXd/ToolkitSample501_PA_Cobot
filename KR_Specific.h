@@ -13,18 +13,21 @@
 
 #include "KreonDefines.h"
 
+#if !defined(__KR_REGISTER_H__)
 // Constants for accessing the Registry
-static const TCHAR BASED_CODE HKEY_POLYGONIA_ROOT[]				= _T("POLYGONIA");
+static const TCHAR BASED_CODE SOFTWARE_VERSION[]				= _T("v3.3.2.1");
 static const TCHAR BASED_CODE HKEY_POLYGONIA_CONFIG_HEAD[]		= _T("Config");
 static const TCHAR BASED_CODE HKEY_CONFIG_MACHINE[]				= _T("CurrentMachine");
-static const TCHAR BASED_CODE HKEY_CONFIG_HARDWAREDIRECTORY[]	= _T("HardWarePath");		//	CString : Directory containing the HardWare inforation
-static const TCHAR BASED_CODE ROOT_REGISTRY[]					= _T("SoftWare");
+static const TCHAR BASED_CODE HKEY_CONFIG_HARDWAREDIRECTORY[]	= _T("HardwarePath");		//	CString : Directory containing the HardWare inforation
+static const TCHAR BASED_CODE ROOT_REGISTRY[]					= _T("Software");
 static const TCHAR BASED_CODE ROOT_LOCAL[]						= _T("SOFTWARE");
-static const TCHAR BASED_CODE HKEY_POLYGONIA_APPLICATION[]		= _T("POLYGONIA Kreon industrie Application");
+static const TCHAR BASED_CODE HKEY_KREON_TECHNOLOGIES[]			= _T("Kreon Technologies");
 static const TCHAR BASED_CODE HKEY_CONFIG_HEAD[]				= _T("CurrentHead");		//	CString : File name of machine head (like PH10)
 static const TCHAR BASED_CODE HKEY_CONFIG_SCANSERVERSTATE[]		= _T("ScanServerState");
-static const TCHAR BASED_CODE HKEY_CONFIG_MIRE[]				= _T("CurrentMire");		//	CString : File name of current scanner calibration
-
+static const TCHAR BASED_CODE HKEY_CONFIG_CALIBRATION_NAME[]	= _T("CurrentSensor");		//	CString : File name of current scanner calibration
+static const TCHAR BASED_CODE HKEY_CONFIG_SENSOR[]				= _T("Sensor");				//	CString : Codename of current scanner
+static const TCHAR BASED_CODE HKEY_CONFIG_LANGUAGE[]			= _T("Language");			//	CString : Language code ("US","FR","DE","JP","IT","RU","CN"...)
+#endif
 #define HKEY_ROOT_REGISTRY	HKEY_CURRENT_USER 
 #define HKEY_ROOT_LOCAL		HKEY_LOCAL_MACHINE
 
@@ -41,7 +44,7 @@ public:
 	void IndexHeadSerialize(CArchive &ar);
 	void SetScanServerState(CString msg);
 	bool ReadRegister(LPCTSTR lpszRoot, LPCTSTR lpszHead, LPCTSTR lpszKey,
-							 CString defaultValue, CString& Result);
+					  CString defaultValue, CString& Result, bool bCurrentUser=true);
 
 	static bool CWK_GetGeneral(FILE* CWKFile, double* Matrix, int*LineNumber);
 	static bool CWK_GetNextLine(FILE* CWKFile, double* LaserLine, UINT* LaserLineSize, double* PassageMatrix);
@@ -50,8 +53,8 @@ public:
 
 	KR_INDEX m_Index;
 private:
-	bool ReadRegisterLocal(LPCTSTR lpszRoot, LPCTSTR lpszHead, LPCTSTR lpszKey,
-					   CString defaultValue, CString& Result);
+	bool WriteRegister(CString Root, CString Head, CString Key, bool Value, bool bCurrentUser=true);
+	bool WriteRegister(CString Root, CString Head, CString Key, CString Value, bool bCurrentUser=true);
 };
 
 #endif // !defined(AFX_KR_SPECIFIC_H__195100D0_44B0_468A_BE3B_2BABC7E311BF__INCLUDED_)

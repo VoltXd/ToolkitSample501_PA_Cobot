@@ -4,18 +4,16 @@
 //		Make the interface between any of the KREON arm dll and your program.
 //
 /////////////////////////////////////////////////////////////////////////////
-#include "stdafx.h"
 #include "ArmManager.h"
 #include <stdio.h>
 #include <tchar.h>
-#include "VXElementsWrapper.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
-CArmManager::CArmManager(/*const*/ TCHAR* DLLName)
+CArmManager::CArmManager(const TCHAR* DLLName)
 {
 	m_hModule			= NULL;
-	m_bDllOk			= true;
+	m_bDllOk			= false;
 	m_NbButtons			= -1;
 	m_TriggerDuration	= 0xFFFFFFFF;
 	m_DllName			= NULL;
@@ -40,8 +38,6 @@ CArmManager::CArmManager(/*const*/ TCHAR* DLLName)
 	m_lpfnDllOpenKreonArmProbesManagement		= NULL;
 
 	//	Loads the DLL
-	m_DllName = DLLName;
-/*
 	m_hModule = ::LoadLibraryEx(DLLName,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
 	if (m_hModule)
 	{
@@ -83,85 +79,7 @@ CArmManager::CArmManager(/*const*/ TCHAR* DLLName)
 	}
 	else
 		printf("Error in CArmManager::CArmManager: LoadLibrary failed\n");
-*/
 }
-
-/////////////////////////////////////////////////////////////////////////////
-bool CArmManager::IsInitialized()
-{
-	return true;
-}
-
-bool CArmManager::IsConnected()
-{
-	return CArmManager::wrapper.IsConnected();
-}
-
-int CArmManager::BeginArm()
-{
-	return CArmManager::wrapper.BeginArm();
-}
-
-int	CArmManager::EndArm()
-{
-	return CArmManager::wrapper.EndArm();
-}
-
-int	CArmManager::BeginAcquisition(int Mode)
-{
-	return CArmManager::wrapper.BeginAcquisition(Mode);
-}
-
-int	CArmManager::GetAcquisitionMode(void)
-{
-	return CArmManager::wrapper.GetAcquisitionMode();
-}
-
-int	CArmManager::EndAcquisition()
-{
-	return CArmManager::wrapper.EndAcquisition();
-}
-
-int	CArmManager::GetCurrentPosition(double* Matrix,bool* ButtonState)
-{
-	return CArmManager::wrapper.GetCurrentPosition(Matrix, ButtonState);
-}
-
-int	CArmManager::GetTriggeredPosition(double* Matrix,bool* ButtonState)
-{
-	return CArmManager::wrapper.GetTriggeredPosition(Matrix, ButtonState);
-}
-
-int	CArmManager::GetButtonState(bool* ButtonState)
-{
-	return CArmManager::wrapper.GetButtonState(ButtonState);
-}
-
-bool CArmManager::GetParameter(char* Name,void* Value)
-{
-	return CArmManager::wrapper.GetParameter(Name, Value);
-}
-
-bool CArmManager::SetParameter(char* Name,void* Value)
-{
-	return CArmManager::wrapper.SetParameter(Name, Value);
-}
-
-bool CArmManager::HasPropertiesWindow(void)
-{
-	return CArmManager::wrapper.HasPropertiesWindow();
-}
-
-void CArmManager::PropertiesWindow(HWND hWndParent)
-{
-	return CArmManager::wrapper.PropertiesWindow(hWndParent);
-}
-
-int	CArmManager::ProbeCalibration(int nPositions, KR_POSITION Positions[], int CalibrationMethod, KR_TOUCH_PROBE * pProbe, double SphereDiameter)
-{
-	return CArmManager::wrapper.ProbeCalibration(nPositions, Positions, CalibrationMethod, pProbe, SphereDiameter);
-}
-
 
 /////////////////////////////////////////////////////////////////////////////
 CArmManager::~CArmManager()
@@ -170,18 +88,17 @@ CArmManager::~CArmManager()
 
 	if (m_hModule)
 	{
-//		if (m_lpfnDllIsConnected && IsConnected() && m_lpfnDllEndArm)
-		if(IsConnected())
+		if (m_lpfnDllIsConnected && IsConnected() && m_lpfnDllEndArm)
 			EndArm();
 
 		// Free the library unless it is KRMicroScribe.dll (because it uses FlyCapture2.dll that may crash when freed).
-//		if (_wcsicmp(m_DllName,_T("KRMicroScribe.dll")))
+		if (_wcsicmp(m_DllName,_T("KRMicroScribe.dll")))
 			::FreeLibrary(m_hModule);
 		m_hModule = NULL;
 	}
 
-//	if (m_DllName)
-//		delete [] m_DllName;
+	if (m_DllName)
+		delete [] m_DllName;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -195,7 +112,7 @@ int CArmManager::GetNbButtons(void)
 /////////////////////////////////////////////////////////////////////////////
 void CArmManager::SetFrequency(int Frequency)
 {
-//	if (m_lpfnDllSetParameter)
+	if (m_lpfnDllSetParameter)
 		SetParameter("AcquisitionFrequency",&Frequency);
 }
 
@@ -204,7 +121,7 @@ DWORD CArmManager::GetTriggerDuration(void)
 {
 	if (m_TriggerDuration==0xFFFFFFFF)
 	{
-//		if (m_lpfnDllGetParameter)
+		if (m_lpfnDllGetParameter)
 			GetParameter("TriggerDuration",&m_TriggerDuration);
 
 		if (m_TriggerDuration==0xFFFFFFFF)

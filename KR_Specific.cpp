@@ -142,8 +142,8 @@ void CKR_Specific::MatrixInvert(double* m1)
 
 	int i,j;
 	for(i=0; i<3; i++)
-		for(j=0; j<3; j++)
-			m1[j*4+i] = buf[i*4+j];
+	for(j=0; j<3; j++)
+		m1[j*4+i] = buf[i*4+j];
 
 	m1[12]=-(m1[0]*buf[12]+m1[4]*buf[13]+m1[8]*buf[14]);
 	m1[13]=-(m1[1]*buf[12]+m1[5]*buf[13]+m1[9]*buf[14]);
@@ -153,22 +153,25 @@ void CKR_Specific::MatrixInvert(double* m1)
 /////////////////////////////////////////////////////////////////////////////
 bool CKR_Specific::CheckMachine()
 {
-	CString FileName;
-	ReadRegisterLocal(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,
-		HKEY_CONFIG_MACHINE,_T(""),FileName);
+	CString FileName,Sensor;
+	ReadRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_MACHINE,_T(""),FileName);
+	ReadRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_SENSOR,_T(""),Sensor);
 
-	if(FileName.GetLength()==0)
+	if (FileName.IsEmpty() || Sensor.IsEmpty())
 		return false;
 
-	CString hardWareDir=_T("");
-	ReadRegister(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,
-		HKEY_CONFIG_HARDWAREDIRECTORY,_T(""),hardWareDir);
-
-	CString PathName;
-	if (hardWareDir.IsEmpty())
-		PathName = FileName;
-	else
-		PathName = hardWareDir + _T("\\") + FileName; 
+	static CString st_DefaultHardwarePath=_T("");
+	if (st_DefaultHardwarePath.IsEmpty())
+	{
+		TCHAR szPath[MAX_PATH];
+		SHGetSpecialFolderPath(NULL,szPath,CSIDL_COMMON_APPDATA,FALSE);
+		st_DefaultHardwarePath = szPath;
+		st_DefaultHardwarePath+= _T("\\");
+		st_DefaultHardwarePath+= HKEY_KREON_TECHNOLOGIES;
+	}
+	CString hardWareDir;
+	ReadRegister(_T(""),_T(""),HKEY_CONFIG_HARDWAREDIRECTORY,st_DefaultHardwarePath,hardWareDir);
+	CString PathName = hardWareDir + _T("\\") + SOFTWARE_VERSION + _T("\\") + Sensor + _T("\\") + FileName; 
 
 	
 	CFile archiveFile;
@@ -194,79 +197,20 @@ bool CKR_Specific::CheckMachine()
 
 /////////////////////////////////////////////////////////////////////////////
 bool CKR_Specific::ReadRegister(LPCTSTR lpszRoot, LPCTSTR lpszHead, LPCTSTR lpszKey,
-				  CString defaultValue, CString& Result)
+								CString defaultValue, CString& Result, bool bCurrentUser)
 {
 	bool isOpenKey = FALSE;
-	if (!lstrcmp(AfxGetAppName(), HKEY_POLYGONIA_ROOT))
-	{
-		Result = AfxGetApp()->GetProfileString(lpszHead, lpszKey, defaultValue);
-		isOpenKey = TRUE;
-	}
-	else
-	{
-		DWORD lbuf=_MAX_PATH;
-		TCHAR resultRead[_MAX_PATH];
-
-		HKEY key;
-		CString path(ROOT_REGISTRY);
-		if (!path.IsEmpty())
-		{
-			path += _T("\\");
-			path += HKEY_POLYGONIA_APPLICATION;
-			path += _T("\\");
-		}
-		path += lpszRoot;
-
-		if (lstrlen(lpszHead))
-		{
-			path += _T("\\");
-			path += lpszHead;
-		}
-
-		// Open the key
-		isOpenKey = RegOpenKeyEx(HKEY_ROOT_REGISTRY, (LPCTSTR) path, 0, KEY_READ, &key)==ERROR_SUCCESS;
-		if (isOpenKey && key)
-		{		
-			// Read the value
-			DWORD type;
-			lbuf = sizeof(resultRead);
-			long bRet = RegQueryValueEx(key, lpszKey, (LPDWORD) NULL, &type , (LPBYTE) resultRead, &lbuf); //Retour de "isOpenKey" si erreur de lecture
-			isOpenKey = (bRet==ERROR_SUCCESS) && (type==REG_SZ);
-
-			// No read error
-			Result = isOpenKey ? resultRead : defaultValue;
-
-			// Close the key
-			RegCloseKey(key);
-		}
-		else
-		{	
-			// Read error: the key does not exist => set default value!
-			Result = defaultValue;
-			isOpenKey = FALSE;
-		}
-	}
-	return isOpenKey;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-bool CKR_Specific::ReadRegisterLocal(LPCTSTR lpszRoot, LPCTSTR lpszHead, LPCTSTR lpszKey,
-					   CString defaultValue, CString& Result)
-{
-	if (ReadRegister(lpszRoot, lpszHead, lpszKey, defaultValue, Result))
-		if (defaultValue != Result)
-			return TRUE;
-
-	bool isOpenKey = FALSE;
-	DWORD lbuf=_MAX_PATH;
-	TCHAR resultRead[_MAX_PATH];
+	DWORD lbuf=MAX_PATH;
+	TCHAR resultRead[MAX_PATH];
 
 	HKEY key;
-	CString path(ROOT_LOCAL);
+	CString path;
+	path = bCurrentUser ? ROOT_REGISTRY : ROOT_LOCAL;
+
 	if (!path.IsEmpty())
 	{
 		path += _T("\\");
-		path += HKEY_POLYGONIA_APPLICATION;
+		path += HKEY_KREON_TECHNOLOGIES;
 		path += _T("\\");
 	}
 	path += lpszRoot;
@@ -277,122 +221,146 @@ bool CKR_Specific::ReadRegisterLocal(LPCTSTR lpszRoot, LPCTSTR lpszHead, LPCTSTR
 		path += lpszHead;
 	}
 
-	// Open the key
-	isOpenKey = RegOpenKeyEx(HKEY_ROOT_LOCAL, (LPCTSTR) path, 0, KEY_READ, &key)==ERROR_SUCCESS;
+	if (bCurrentUser)
+		isOpenKey = RegOpenKeyEx(HKEY_ROOT_REGISTRY, (LPCTSTR) path, 0, KEY_READ, &key)==ERROR_SUCCESS;
+	else
+#ifdef _WIN64
+		isOpenKey = RegOpenKeyEx(HKEY_ROOT_LOCAL, (LPCTSTR) path, 0, KEY_READ | KEY_WOW64_64KEY, &key)==ERROR_SUCCESS;
+#else
+		isOpenKey = RegOpenKeyEx(HKEY_ROOT_LOCAL, (LPCTSTR) path, 0, KEY_READ | KEY_WOW64_32KEY, &key)==ERROR_SUCCESS;
+#endif
 	if (isOpenKey && key)
 	{		
-		// Read the value
 		DWORD type;
 		lbuf = sizeof(resultRead);
 		long bRet = RegQueryValueEx(key, lpszKey, (LPDWORD) NULL, &type , (LPBYTE) resultRead, &lbuf); //Retour de "isOpenKey" si erreur de lecture
 		isOpenKey = (bRet==ERROR_SUCCESS) && (type==REG_SZ);
 
-		// No read error
-		Result = isOpenKey ? resultRead : defaultValue;
-
-		// Close the key
 		RegCloseKey(key);
+
+		if (isOpenKey)
+			Result = resultRead;
 	}
-	else
+
+	if (!isOpenKey)
 	{	
-		// Read error: the key does not exist => set default value!
-		Result = defaultValue;
-		isOpenKey = FALSE;
-	}	
+		// Error: key not found
+		if (bCurrentUser)
+		{
+			// If it was read in CURRENT_USER, try LOCAL_MACHINE now
+			isOpenKey = ReadRegister(lpszRoot,lpszHead,lpszKey,defaultValue,Result,false);
+			if (isOpenKey)
+			{
+				// If successful in LOCAL_MACHINE, update CURRENT_USER
+				WriteRegister(lpszRoot,lpszHead,lpszKey,Result,true);
+			}
+		}
+		else
+		{
+			// Key neither exists in CURRENT_USER nor LOCAL_MACHINE => use default value!
+			Result = defaultValue;
+			isOpenKey = FALSE;
+		}
+	}
+
 	return isOpenKey;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-bool WriteRegister(CString Root, CString Head, CString Key, CString Value)
+bool CKR_Specific::WriteRegister(CString Root, CString Head, CString Key, CString Value, bool bCurrentUser)
 {
 	bool isOpenKey = FALSE;
-	if (!lstrcmp(AfxGetAppName(), HKEY_POLYGONIA_ROOT))
-		isOpenKey = AfxGetApp()->WriteProfileString(Head, Key, Value)==TRUE;
-	else
+	HKEY key;
+	DWORD resultAccess;
+
+	CString path;
+	path = bCurrentUser ? ROOT_REGISTRY : ROOT_LOCAL;
+
+	if (!path.IsEmpty())
 	{
-		HKEY key;
-		DWORD resultAccess;
-	
-		CString path(ROOT_REGISTRY);
-		if (!path.IsEmpty())
-		{
-			path += _T("\\");
-			path += HKEY_POLYGONIA_APPLICATION;
-			path += _T("\\");
-		}
-		path += Root;
-
-		if (!Head.IsEmpty())
-		{	
-			path += "\\";
-			path += Head;
-		}
-
-		isOpenKey = RegCreateKeyEx(HKEY_ROOT_REGISTRY, (LPCTSTR) path, (DWORD) 0, _T("noClass"), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &key, &resultAccess)==ERROR_SUCCESS;
-		if (isOpenKey && key)
-		{
-			TCHAR buf[_MAX_PATH];
-			lstrcpy(buf, Value);
-			isOpenKey  = (RegSetValueEx(key, LPCTSTR(Key), NULL, REG_SZ, (LPBYTE) buf, Value.GetLength()+1)==ERROR_SUCCESS);
-			isOpenKey &= (RegCloseKey(key)==ERROR_SUCCESS);
-		}
+		path += _T("\\");
+		path += HKEY_KREON_TECHNOLOGIES;
+		path += _T("\\");
 	}
+	path += Root;
+
+	if (!Head.IsEmpty())
+	{	
+		path += "\\";
+		path += Head;
+	}
+
+	if (bCurrentUser)
+		isOpenKey = RegCreateKeyEx(HKEY_ROOT_REGISTRY, (LPCTSTR) path, (DWORD) 0, _T("noClass"), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &key, &resultAccess)==ERROR_SUCCESS;
+	else
+		isOpenKey = RegCreateKeyEx(HKEY_ROOT_LOCAL, (LPCTSTR) path, (DWORD) 0, _T("noClass"), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &key, &resultAccess)==ERROR_SUCCESS;
+
+	if (isOpenKey && key)
+	{
+		TCHAR buf[MAX_PATH];
+		lstrcpy(buf, Value);
+		isOpenKey  = (RegSetValueEx(key, LPCTSTR(Key), NULL, REG_SZ, (LPBYTE) buf, (Value.GetLength()+1)*sizeof(TCHAR))==ERROR_SUCCESS);
+		isOpenKey &= (RegCloseKey(key)==ERROR_SUCCESS);
+	}
+
 	return isOpenKey;
 }
+
 /////////////////////////////////////////////////////////////////////////////
-BOOL WriteRegister(CString Root, CString Head, CString Key, bool Value)
+bool CKR_Specific::WriteRegister(CString Root, CString Head, CString Key, bool Value, bool bCurrentUser)
 {
-	BOOL isOpenKey = FALSE;
-	if (!lstrcmp(AfxGetAppName(), HKEY_POLYGONIA_ROOT))
-		isOpenKey = AfxGetApp()->WriteProfileInt(Head, Key, Value);
-	else
+	bool isOpenKey = FALSE;
+	HKEY key;
+	DWORD resultAccess;
+	CString path;
+	path = bCurrentUser ? ROOT_REGISTRY : ROOT_LOCAL;
+
+	if (!path.IsEmpty())
 	{
-		HKEY key;
-		DWORD resultAccess;
-		CString path(ROOT_REGISTRY);
-
-		if (!path.IsEmpty())
-		{
-			path += _T("\\");
-			path += HKEY_POLYGONIA_APPLICATION;
-			path += _T("\\");
-		}
-		path+=Root;
-
-		if (!Head.IsEmpty())
-		{
-			path += _T("\\");
-			path += Head;
-		}
-
-		isOpenKey = RegCreateKeyEx(HKEY_ROOT_REGISTRY, path, 0, _T("noClass"), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &key, &resultAccess)==ERROR_SUCCESS;
-		if (isOpenKey && key)
-		{
-			isOpenKey = RegSetValueEx(key, LPCTSTR(Key), NULL, REG_BINARY, (BYTE*) &Value, sizeof(bool))==ERROR_SUCCESS;
-			if (isOpenKey)
-				isOpenKey = (RegCloseKey(key)==ERROR_SUCCESS);
-		}
+		path += _T("\\");
+		path += HKEY_KREON_TECHNOLOGIES;
+		path += _T("\\");
 	}
+	path+=Root;
+
+	if (!Head.IsEmpty())
+	{
+		path += _T("\\");
+		path += Head;
+	}
+
+	if (bCurrentUser)
+		isOpenKey = RegCreateKeyEx(HKEY_ROOT_REGISTRY, (LPCTSTR) path, (DWORD) 0, _T("noClass"), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &key, &resultAccess)==ERROR_SUCCESS;
+	else
+		isOpenKey = RegCreateKeyEx(HKEY_ROOT_LOCAL, (LPCTSTR) path, (DWORD) 0, _T("noClass"), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &key, &resultAccess)==ERROR_SUCCESS;
+
+	if (isOpenKey && key)
+	{
+		isOpenKey = RegSetValueEx(key, LPCTSTR(Key), NULL, REG_BINARY, (BYTE*) &Value, sizeof(bool))==ERROR_SUCCESS;
+		if (isOpenKey)
+			isOpenKey = (RegCloseKey(key)==ERROR_SUCCESS);
+	}
+
 	return isOpenKey;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 bool CKR_Specific::IndexHeadSave()
 {
-	CString FileName=_T("");
-	ReadRegister(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_HEAD,_T(""),FileName);
-	if (FileName.IsEmpty())
+	CString FileName,Sensor;
+	ReadRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_HEAD,_T(""),FileName);
+	ReadRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_SENSOR,_T(""),Sensor);
+	if (FileName.IsEmpty() || Sensor.IsEmpty())
 		return false;
 
-	CString hardWareDir=_T("");
-	ReadRegister(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,
-		HKEY_CONFIG_HARDWAREDIRECTORY,_T(""),hardWareDir);
+	CString hardWareDir;
+	ReadRegister(_T(""),_T(""),HKEY_CONFIG_HARDWAREDIRECTORY,_T(""),hardWareDir);
 
 	CString PathName;
 	if (hardWareDir.IsEmpty())
 		PathName = FileName;
 	else
-		PathName = hardWareDir + _T("\\") + FileName; 
+		PathName = hardWareDir + _T("\\") + SOFTWARE_VERSION + _T("\\") + Sensor + _T("\\") + FileName; 
 
 	CFile archiveFile;
 	if (archiveFile.Open(PathName, CFile::modeCreate | CFile::modeWrite))
@@ -408,23 +376,21 @@ bool CKR_Specific::IndexHeadSave()
 /////////////////////////////////////////////////////////////////////////////
 bool CKR_Specific::IndexHeadRead()
 {
-	CString FileName=_T("");
-	ReadRegister(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_HEAD,_T(""),FileName);
+	CString FileName,Sensor;
+	ReadRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_HEAD,_T(""),FileName);
+	ReadRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_SENSOR,_T(""),Sensor);
 	if (FileName.IsEmpty())
 		return false;
 
 	bool NoError = false;
 	CString hardWareDir=_T("");
-	ReadRegister(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,
-		HKEY_CONFIG_HARDWAREDIRECTORY,_T(""),hardWareDir);
-	if (FileName.IsEmpty())
-		ReadRegisterLocal(HKEY_POLYGONIA_ROOT, HKEY_POLYGONIA_CONFIG_HEAD, HKEY_CONFIG_HEAD, _T(""), FileName);
+	ReadRegister(_T(""),_T(""),HKEY_CONFIG_HARDWAREDIRECTORY,_T(""),hardWareDir);
 
 	CString PathName;
 	if (hardWareDir.IsEmpty())
 		PathName = FileName;
 	else
-		PathName = hardWareDir + _T("\\") + FileName; 
+		PathName = hardWareDir + _T("\\") + SOFTWARE_VERSION + _T("\\") + Sensor + _T("\\") + FileName; 
 
 	CFile archiveFile;
 	if (archiveFile.Open(PathName, CFile::modeRead))
@@ -450,8 +416,7 @@ bool CKR_Specific::IndexHeadRead()
 /////////////////////////////////////////////////////////////////////////////
 void CKR_Specific::SetScanServerState(CString msg)
 {
-	WriteRegister(HKEY_POLYGONIA_ROOT,HKEY_POLYGONIA_CONFIG_HEAD,
-		HKEY_CONFIG_SCANSERVERSTATE,msg);
+	WriteRegister(SOFTWARE_VERSION,HKEY_POLYGONIA_CONFIG_HEAD,HKEY_CONFIG_SCANSERVERSTATE,msg);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -495,6 +460,7 @@ void CKR_Specific::IndexHeadSerialize(CArchive &ar)
 		switch (nVersion)
 		{
 			case 0x0001:
+			case 0x0002:
 				{
 					BOOL BOOL_;
 					int  int_;
@@ -516,7 +482,7 @@ void CKR_Specific::IndexHeadSerialize(CArchive &ar)
 					CString Name;
 					ar >> Name;
 #ifdef _UNICODE
-					wcstombs_s(NULL,m_Index.Name,_countof(m_Index.Name),Name,lstrlen(Name)+1);
+					wcstombs_s(NULL,m_Index.Name,_countof(m_Index.Name),Name,_TRUNCATE);
 #else
 					strcpy_s(m_Index.Name,_countof(m_Index.Name), (LPCTSTR)Name);
 #endif

@@ -28,7 +28,7 @@ protected:
 	//{{AFX_VIRTUAL(CMainFrame)
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
-	virtual void OnTimer(UINT_PTR nIDEvent);
+	virtual void OnTimer(UINT nIDEvent);
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -43,10 +43,9 @@ public:
 private:
 	bool	Init();
 	bool	m_bKreonInitialized;
+	bool	m_bScanning;
 
 public:
-	bool	m_bPositioning;
-	bool	m_bScanning;
 	static HWND		m_StatichWnd;
 
 // Generated message map functions
@@ -61,6 +60,7 @@ protected:
 	afx_msg void OnKreontoolkitPausescan();
 	afx_msg void OnUpdateKreontoolkitStartscan(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateKreontoolkitPausescan(CCmdUI* pCmdUI);
+	afx_msg void OnKreonToolkitProbeCalibration();
 	afx_msg void OnKreonArmProperties();
 	afx_msg void OnKreonScannerProperties();
 	afx_msg void OnKreontoolkitLicense();
