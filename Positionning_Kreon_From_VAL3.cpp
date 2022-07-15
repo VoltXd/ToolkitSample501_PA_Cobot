@@ -56,17 +56,17 @@ namespace PA_Positionning
 		Eigen::Matrix3f rotationXMatrix;
 		Eigen::Matrix3f rotationYprimeMatrix;
 		Eigen::Matrix3f rotationZsecondMatrix;
-		rotationXMatrix << 1, 0, 0,
-			0, cos(rx), -sin(rx),
-			0, sin(rx), cos(rx);
+		rotationXMatrix <<	1, 0,		0,
+							0, cos(rx), -sin(rx),
+							0, sin(rx), cos(rx);
 
-		rotationYprimeMatrix << cos(ry), 0, sin(ry),
-			0, 1, 0,
-			-sin(ry), 0, cos(ry);
+		rotationYprimeMatrix << cos(ry),	0, sin(ry),
+								0,			1, 0,
+								-sin(ry),	0, cos(ry);
 
-		rotationZsecondMatrix << cos(rz), -sin(rz), 0,
-			sin(rz), cos(rz), 0,
-			0, 0, 1;
+		rotationZsecondMatrix <<	cos(rz),	-sin(rz),	0,
+									sin(rz),	cos(rz),	0,
+									0,			0,			1;
 		Eigen::Matrix3f rotationMatrix = rotationXMatrix * rotationYprimeMatrix * rotationZsecondMatrix;
 
 		return rotationMatrix;
