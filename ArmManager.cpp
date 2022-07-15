@@ -18,6 +18,10 @@
 #include <string>
 
 #pragma warning(disable:4302)	// Disable cast void* to WORD warning
+<<<<<<< HEAD
+#pragma warning(disable:4244)
+=======
+>>>>>>> parent of 0032b87 (Points.txt ?)
 
 PA_Communication::CircularBuffer cobotRxBuffer(1024);
 PA_Communication::UdpSocketManager cobotSocketManager(1980, "192.168.0.254", 1980);
@@ -437,9 +441,9 @@ void readBuffer(PA_Communication::CircularBuffer &cbRx)
 		PA_Protocol::retrievePose(pose);
 		PA_Positionning::tx2ToKreonTransform(pose);
 
-		float rx = pose[3];
-		float ry = pose[4];
-		float rz = pose[5];
+		float rx = pose[3] * EIGEN_PI / 180.0;
+		float ry = pose[4] * EIGEN_PI / 180.0;
+		float rz = pose[5] * EIGEN_PI / 180.0;
 
 		rotationMatrix = PA_Positionning::getRotationMatrix(rx, ry, rz);
 		isRetrievingPose = false;
